@@ -51,12 +51,12 @@ How to use script:
 2. Copy snmp_passpersist to /mnt/flash
         https://github.com/nagius/snmp_passpersist
 
-3. Enable management api (script uses a unix socket)
+3. Enable management api (script uses a unix socket):
         management api http-commands
            protocol unix-socket
            no shutdown
 
-4. Enable Hardware counters for vlan
+4. Enable Hardware counters for vlans:
        hardware counter feature vlan out
        hardware counter feature vlan in
 
@@ -73,9 +73,12 @@ import snmp_passpersist as snmp
 from jsonrpclib import Server
 
 # Configuration section
+### Base OID used to register entries
+### SNMPv2-SMI::experimental.53.9
 OID_BASE = ".1.3.6.1.3.53.9"
+### eAPI polling timer to create SNMP entries
 POLLING_INTERVAL = 30
-# Number of SNMP pass_persist update tries
+### Number of SNMP pass_persist update tries
 MAX_RETRY = 10
 
 # Only to activate debug mode
