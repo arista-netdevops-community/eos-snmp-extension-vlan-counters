@@ -35,34 +35,25 @@
 
 """
 This script populates the vlanCounters via a net-snmp extension
-
 Script Information:
 -------------------
-
 - Script name: vlanCounters.py
 - Version: 0.1
 - Date: 08/24/2020
-
 How to use script:
 ------------------
-
 1. Copy this script to /mnt/flash as vlanCounters.py
-
 2. Copy snmp_passpersist to /mnt/flash
         https://github.com/nagius/snmp_passpersist
-
 3. Enable management api (script uses a unix socket):
         management api http-commands
            protocol unix-socket
            no shutdown
-
 4. Enable Hardware counters for vlans:
        hardware counter feature vlan out
        hardware counter feature vlan in
-
 5. Configure SNMP-SERVER extension
        snmp-server extension .1.3.6.1.3.53.9 flash:/vlanCounters.py
-
 6. Re-configure SNMP-SERVER extension when script is updated
        no snmp-server extension .1.3.6.1.3.53.9 flash:/vlanCounters.py
        snmp-server extension .1.3.6.1.3.53.9 flash:/vlanCounters.py
@@ -75,7 +66,7 @@ from jsonrpclib import Server
 # Configuration section
 ### Base OID used to register entries
 ### SNMPv2-SMI::experimental.53.9
-OID_BASE = ".1.3.6.1.3.53.9"
+OID_BASE = ".1.3.6.1.2.1.2.2.1"
 ### eAPI polling timer to create SNMP entries
 POLLING_INTERVAL = 30
 ### Number of SNMP pass_persist update tries
@@ -87,72 +78,27 @@ DEBUG = False
 
 # Define OID for specific counters
 OID_TRANSLATION = dict()
-OID_TRANSLATION['inUcastPkts'] = 1
-OID_TRANSLATION['outUcastPkts'] = 2
-OID_TRANSLATION['inOctets'] = 3
-OID_TRANSLATION['outOctets'] = 4
+OID_TRANSLATION['inUcastPkts'] = 11
+OID_TRANSLATION['outUcastPkts'] = 17
+OID_TRANSLATION['inOctets'] = 10
+OID_TRANSLATION['outOctets'] = 16
 OID_TRANSLATION['inBcastPkts'] = 5
 OID_TRANSLATION['outBcastPkts'] = 6
 OID_TRANSLATION['inMcastPkts'] = 5
 OID_TRANSLATION['outMcastPkts'] = 6
 
-# Define specific OID for description field and values
-OID_DESCRIPTION = '.0.'
-OID_VALUE = '.1.'
-
-
 def run_cmd(cmds):
-    """
-    run_cmd run EOS command using local UNIX socket to eAPI engine
-
-    Run EOS Command using eAPI and local socket. Result is native JSON part of result dictionary
-
-    Parameters
-    ----------
-    cmds : list
-        list of EOS commands to run
-
-    Returns
-    -------
-    dict
-        Full content of the eAPI response
-    """
     switch = Server("unix:/var/run/command-api.sock")
     eos_response = switch.runCmds(1, cmds)
     return eos_response
 
 
 def update():
-    """
-    update Update SNMP MIB with EOS HW counters for vlans
-
-    Populate SNMP OIDs to store Vlan HW counters from EOS. Data structure in place is:
-    {{ OID_BASE }}.{{ VLAN_ID }}.{{ OID_DESCRIPTION | OID_VALUE }}.{{ OID_TRANSLATION[counter] }}
-
-    Examples
-    --------
-    SNMPv2-SMI::experimental.53.9.0 = STRING: "MIB updated by vlanCounters.py"
-    SNMPv2-SMI::experimental.53.9.0.1.0.1 = STRING: "inUcastPkts"
-    SNMPv2-SMI::experimental.53.9.0.1.0.2 = STRING: "outUcastPkts"
-    SNMPv2-SMI::experimental.53.9.0.1.0.3 = STRING: "inOctets"
-    SNMPv2-SMI::experimental.53.9.0.1.0.4 = STRING: "outOctets"
-    SNMPv2-SMI::experimental.53.9.0.1.0.5 = STRING: "inBcastPkts"
-    SNMPv2-SMI::experimental.53.9.0.1.0.6 = STRING: "outMcastPkts"
-    SNMPv2-SMI::experimental.53.9.0.1.1.1 = INTEGER: 77934
-    SNMPv2-SMI::experimental.53.9.0.1.1.2 = INTEGER: 0
-    SNMPv2-SMI::experimental.53.9.0.1.1.3 = INTEGER: 12207903
-    SNMPv2-SMI::experimental.53.9.0.1.1.4 = INTEGER: 0
-    SNMPv2-SMI::experimental.53.9.0.1.1.5 = INTEGER: 0
-    SNMPv2-SMI::experimental.53.9.0.1.1.6 = INTEGER: 0
-    """
     eos_data = run_cmd(cmds=['show vlan counters'])
-    pp.add_str('0', "MIB updated by vlanCounters.py")
     for vlan, counters in eos_data[0]['vlanCountersInfo'].items():
         counter_loop = 1
         for counter in counters:
-            pp.add_str('0.' + str(vlan) + OID_DESCRIPTION + str(OID_TRANSLATION[counter]),
-                       counter)
-            pp.add_int('0.' + str(vlan) + OID_VALUE + str(OID_TRANSLATION[counter]),
+            pp.add_cnt_32bit(str(OID_TRANSLATION[counter]) + '.' + '200' + str('%04d' % int(vlan)),
                        int(counters[counter]),
                        counter)
             counter_loop += 1
