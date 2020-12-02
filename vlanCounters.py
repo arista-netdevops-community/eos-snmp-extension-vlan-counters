@@ -66,7 +66,7 @@ from jsonrpclib import Server
 # Configuration section
 ### Base OID used to register entries
 ### SNMPv2-SMI::experimental.53.9
-OID_BASE = ".1.3.6.1.2.1.2.2.1"
+OID_BASE = ".1.3.6.1.3.53.9"
 ### eAPI polling timer to create SNMP entries
 POLLING_INTERVAL = 30
 ### Number of SNMP pass_persist update tries
